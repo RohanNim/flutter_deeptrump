@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'pages/transcript.dart';
 import 'pages/result_page.dart';
 import 'pages/transcript_input_page.dart';
+import 'pages/home_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,6 +17,7 @@ class MyApp extends StatelessWidget {
       title: 'DeepTrump',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+        primaryColor: Colors.red.shade900,
         useMaterial3: true,
       ),
       home: const LandingPage(),
@@ -83,14 +85,15 @@ class LandingPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const TranscriptInputPage(),
+                        builder: (context) => const HomePage(),
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.red.shade900,
-                    padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 48, vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),

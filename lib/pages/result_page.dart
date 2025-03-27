@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:logging/logging.dart';
+import '../bottom_nav_bar.dart';
 
 class ResultPage extends StatefulWidget {
   final String generatedText;
   final String videoUrl;
-  
+
   const ResultPage({
     super.key,
     required this.generatedText,
@@ -130,7 +131,7 @@ class _ResultPageState extends State<ResultPage> {
                 children: [
                   IconButton(
                     onPressed: () {
-                      final newPosition = _videoController.value.position - 
+                      final newPosition = _videoController.value.position -
                           const Duration(seconds: 10);
                       _videoController.seekTo(newPosition);
                     },
@@ -141,7 +142,7 @@ class _ResultPageState extends State<ResultPage> {
                     onPressed: () {
                       setState(() {
                         _isPlaying = !_isPlaying;
-                        _isPlaying 
+                        _isPlaying
                             ? _videoController.play()
                             : _videoController.pause();
                       });
@@ -155,7 +156,7 @@ class _ResultPageState extends State<ResultPage> {
                   const SizedBox(width: 20),
                   IconButton(
                     onPressed: () {
-                      final newPosition = _videoController.value.position + 
+                      final newPosition = _videoController.value.position +
                           const Duration(seconds: 10);
                       _videoController.seekTo(newPosition);
                     },
@@ -169,7 +170,9 @@ class _ResultPageState extends State<ResultPage> {
                 value: _playbackProgress,
                 onChanged: (value) {
                   final newPosition = Duration(
-                    milliseconds: (value * _videoController.value.duration.inMilliseconds).toInt(),
+                    milliseconds:
+                        (value * _videoController.value.duration.inMilliseconds)
+                            .toInt(),
                   );
                   _videoController.seekTo(newPosition);
                 },
@@ -196,25 +199,10 @@ class _ResultPageState extends State<ResultPage> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+      bottomNavigationBar: BottomNavBar(
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.red.shade900,
         onTap: _onItemTapped,
       ),
     );
   }
-} 
+}
