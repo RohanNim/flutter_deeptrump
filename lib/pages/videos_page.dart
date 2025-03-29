@@ -6,6 +6,8 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+
 
 class VideosPage extends StatefulWidget {
   final bool showBottomNav;
@@ -149,19 +151,63 @@ class _VideosPageState extends State<VideosPage> {
 
   Future<void> _downloadVideo(String url, String fileName) async {
     try {
-      // Check for storage permission on Android
+      // Request permissions based on Android version
+      bool permissionGranted = false;
+
       if (Platform.isAndroid) {
-        // For Android 13 and higher
-        if (await Permission.manageExternalStorage.isDenied) {
-          if (await Permission.manageExternalStorage.request().isDenied) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text(
-                      'Storage permission is required to download videos')),
+        // Request all necessary permissions
+        final storagePermission = await Permission.storage.request();
+        final photosPermission = await Permission.photos.request();
+        final videosPermission = await Permission.videos.request();
+
+        if (storagePermission.isGranted ||
+            photosPermission.isGranted ||
+            videosPermission.isGranted) {
+          permissionGranted = true;
+        } else {
+          // Show settings dialog if permission permanently denied
+          if (await Permission.storage.isPermanentlyDenied ||
+              await Permission.photos.isPermanentlyDenied ||
+              await Permission.videos.isPermanentlyDenied) {
+            final shouldOpenSettings = await showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Permission Required'),
+                content: const Text(
+                    'Storage permission is required to save videos. Please enable it in settings.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Open Settings'),
+                  ),
+                ],
+              ),
             );
-            return;
+
+            if (shouldOpenSettings == true) {
+              await openAppSettings();
+              return;
+            }
           }
         }
+      } else if (Platform.isIOS) {
+        if (await Permission.photos.request().isGranted) {
+          permissionGranted = true;
+        }
+      }
+
+      if (!permissionGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permission denied. Cannot save video.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
       }
 
       // Show download starting notification
@@ -169,18 +215,14 @@ class _VideosPageState extends State<VideosPage> {
         const SnackBar(content: Text('Starting download...')),
       );
 
-      // Get the directory where we'll save the file
-      final directory = Platform.isAndroid
-          ? Directory(
-              '/storage/emulated/0/Download') // Android downloads folder
-          : await getApplicationDocumentsDirectory(); // iOS documents folder
+      // Download video to temporary file first
+      final tempDir = await getTemporaryDirectory();
+      final tempPath = '${tempDir.path}/$fileName';
 
-      final savePath = '${directory.path}/$fileName';
-
-      // Download the file with Dio
+      // Download the file
       await Dio().download(
         url,
-        savePath,
+        tempPath,
         onReceiveProgress: (received, total) {
           if (total != -1) {
             // Update download progress
@@ -195,18 +237,28 @@ class _VideosPageState extends State<VideosPage> {
         },
       );
 
-      // Show completion message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Video saved to ${Platform.isAndroid ? 'Downloads' : 'Documents'} folder'),
-          backgroundColor: Colors.green,
-        ),
+      // Save to gallery using image_gallery_saver
+      final result = await ImageGallerySaver.saveFile(
+        tempPath,
+        name: "Trump_Video_${DateTime.now().millisecondsSinceEpoch}",
       );
+
+      // Show result
+      if (result['isSuccess'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Video saved to gallery successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        throw Exception("Failed to save to gallery: ${result['errorMessage']}");
+      }
     } catch (e) {
+      print("Error downloading or saving video: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Download failed: $e'),
+          content: Text('Error: $e'),
           backgroundColor: Colors.red,
         ),
       );
